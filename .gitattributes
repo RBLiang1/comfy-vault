@@ -1,0 +1,16 @@
+# 统一换行符，避免 Windows / macOS 互相改文件
+* text=auto
+
+# Windows 批处理必须是 CRLF，否则偶发解析问题
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 其余一律 LF
+*.sh   text eol=lf
+*.py   text eol=lf
+*.js   text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf

@@ -1,0 +1,8 @@
+{
+  "comfy_url": "http://127.0.0.1:8188",
+  "port": 8791,
+  "vault_dir": "vault",
+  "notes_dir": "notes",
+  "pending_limit": 60,
+  "comfy_workflows_dir": ""
+}

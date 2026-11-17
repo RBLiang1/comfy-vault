@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Comfy 经验库</title>
+<style>
+  :root{
+    --bg:#f4f5f8; --card:#ffffff; --ink:#14161b; --muted:#6b7280; --line:#e5e7ee;
+    --accent:#4f46e5; --accent-soft:#eef0ff; --accent-ink:#3730a3;
+    --ok:#0f9d58; --ok-soft:#e8f6ee; --warn:#b45309; --warn-soft:#fdf3e3;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.14);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+    font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea{font-family:inherit;font-size:inherit}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#d3d6e0;border-radius:8px;border:3px solid var(--bg)}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  /* ---------- 顶栏 ---------- */
+  header{
+    position:sticky; top:0; z-index:40; background:rgba(244,245,248,.88);
+    backdrop-filter:blur(12px); border-bottom:1px solid var(--line);
+  }
+  .hwrap{max-width:1320px;margin:0 auto;padding:14px 24px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;margin-right:auto}
+  .logo{
+    width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(140deg,#6366f1,#8b5cf6); color:#fff;font-weight:700;font-size:14px;
+    letter-spacing:.5px; box-shadow:0 4px 12px -4px rgba(99,102,241,.6)
+  }
+  .brand h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  .status{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);
+    background:var(--card);border:1px solid var(--line);padding:6px 11px;border-radius:999px;box-shadow:var(--shadow)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#c3c6d0;flex:none}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(15,157,88,.15)}
+  .dot.off{background:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.14)}
+  .tabs{max-width:1320px;margin:0 auto;padding:12px 24px 0;display:flex;gap:4px}
+  .tab{
+    padding:9px 15px;border-radius:9px 9px 0 0;font-weight:550;color:var(--muted);
+    border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;font-size:13.5px
+  }
+  .tab:hover{color:var(--ink);background:#eceef4}
+  .tab.active{color:var(--accent-ink);border-bottom-color:var(--accent);background:var(--card);
+    border-radius:9px 9px 0 0;box-shadow:0 -1px 0 var(--line),inset 1px 0 0 var(--line),inset -1px 0 0 var(--line)}
+  .badge{background:#e8e9f2;color:#4b5563;border-radius:999px;padding:0 7px;font-size:11.5px;font-weight:600;line-height:18px;min-width:19px;text-align:center}
+  .tab.active .badge{background:var(--accent-soft);color:var(--accent-ink)}
+
+  main{max-width:1320px;margin:0 auto;padding:20px 24px 80px}
+  .hint{
+    display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+    border-left:3px solid var(--accent);border-radius:10px;padding:11px 14px;margin-bottom:18px;
+    font-size:13px;color:#414651;box-shadow:var(--shadow)
+  }
+  .hint b{font-weight:650}
+  .hint .k{background:var(--accent-soft);color:var(--accent-ink);border-radius:5px;padding:1px 6px;font-weight:600;font-size:12.5px}
+
+  .bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+  .search{position:relative;flex:1;min-width:220px;max-width:420px}
+  .search input{
+    width:100%;padding:9px 12px 9px 34px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);outline:none;box-shadow:var(--shadow);color:var(--ink)
+  }
+  .search input:focus{border-color:#b9bdf6;box-shadow:0 0 0 3px rgba(99,102,241,.13)}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.45}
+  .tagrow{display:flex;gap:6px;flex-wrap:wrap}
+  .tagchip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 10px;font-size:12.5px;color:#4b5563}
+  .tagchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tagchip .n{opacity:.55;margin-left:4px;font-size:11px}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:7px 13px;font-weight:550;
+    border:1px solid var(--line);background:var(--card);color:#374151;transition:.14s;box-shadow:var(--shadow);white-space:nowrap}
+  .btn:hover{background:#f7f8fb;border-color:#d5d8e3}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#4338ca}
+  .btn.primary[disabled]{background:#c7c9d6;border-color:#c7c9d6;cursor:default;box-shadow:none}
+  .btn.sm{padding:5px 10px;font-size:12.5px;box-shadow:none}
+  .btn.danger{color:#b42318;border-color:#f0d5d1;background:#fff}
+  .btn.danger:hover{background:#fdf3f2}
+  .btn.ghost{box-shadow:none;border-color:transparent;color:var(--muted);background:transparent}
+  .btn.ghost:hover{background:#eef0f5;color:var(--ink)}
+
+  /* ---------- 卡片 ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;align-items:start}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;
+    display:flex;flex-direction:column;box-shadow:var(--shadow);transition:.16s
+  }
+  .card:hover{box-shadow:0 2px 4px rgba(16,24,40,.06),0 14px 32px -14px rgba(16,24,40,.26);transform:translateY(-1px)}
+  .media{position:relative;background:#0f1115;aspect-ratio:16/10;overflow:hidden;cursor:zoom-in}
+  .media.portrait{aspect-ratio:4/5}
+  .media video,.media img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:#0f1115}
+  .media .ph{width:100%;height:100%;display:grid;place-items:center;color:#6b7280;font-size:12.5px;background:#f0f1f5}
+  .flowpill{max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:rgba(17,19,24,.55);display:inline-block;vertical-align:bottom}
+  .chip.flowchip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+  .media .vp{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
+    background:linear-gradient(140deg,#232838,#12151c);color:#c9cede;transition:opacity .18s;pointer-events:none}
+  .media.playing .vp{opacity:0}
+  .media .vplay{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:15px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding-left:3px}
+  .media .vlabel{font-size:11.5px;letter-spacing:.08em;opacity:.62}
+  .badges{position:absolute;left:9px;top:9px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+  .pill{font-size:11px;font-weight:600;padding:2.5px 8px;border-radius:6px;letter-spacing:.2px;
+    background:rgba(17,19,24,.72);color:#fff;backdrop-filter:blur(4px)}
+  .pill.ok{background:rgba(15,157,88,.9)}
+  .pill.bad{background:rgba(180,35,24,.88)}
+  .pill.kept{background:rgba(79,70,229,.92)}
+  .media .dur{position:absolute;right:9px;bottom:9px;font-size:11.5px;font-weight:600;
+    background:rgba(17,19,24,.72);color:#fff;padding:2px 7px;border-radius:5px;backdrop-filter:blur(4px)}
+  .card .body{padding:12px 13px 13px;display:flex;flex-direction:column;gap:9px;flex:1}
+  .ttl{font-weight:600;font-size:14px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow:hidden;margin:0}
+  .chips{display:flex;gap:5px;flex-wrap:wrap}
+  .chip{background:#f4f5f9;border:1px solid #ecedf3;color:#4b5563;border-radius:6px;
+    padding:1.5px 7px;font-size:11.5px;font-variant-numeric:tabular-nums}
+  .chip.seed{background:var(--accent-soft);border-color:#e0e2fb;color:var(--accent-ink);font-weight:600}
+  .chip.time{background:#f0f7ff;border-color:#e2eefc;color:#1d4f91}
+  .refs{display:flex;gap:6px;align-items:center}
+  .refs img{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:#f4f5f9}
+  .refs .more{font-size:11.5px;color:var(--muted)}
+  .actions{display:flex;gap:7px;margin-top:auto;padding-top:3px;align-items:center}
+  .actions .btn.grow{flex:1;justify-content:center}
+
+  .empty{grid-column:1/-1;text-align:center;padding:56px 20px;color:var(--muted)}
+  .empty h3{color:var(--ink);font-size:15px;margin:0 0 6px;font-weight:600}
+  .empty p{margin:0;font-size:13px}
+
+  /* ---------- 详情抽屉 ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(15,17,21,.42);backdrop-filter:blur(2px);z-index:60;opacity:0;pointer-events:none;transition:.18s}
+  .scrim.show{opacity:1;pointer-events:auto}
+  .drawer{
+    position:fixed;top:0;right:0;height:100%;width:min(620px,94vw);background:var(--card);z-index:70;
+    transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;
+    box-shadow:-24px 0 48px -24px rgba(16,24,40,.35)
+  }
+  .drawer.show{transform:none}
+  .dhead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+  .dhead h2{margin:0;font-size:15.5px;font-weight:650;line-height:1.4;flex:1}
+  .dbody{overflow:auto;padding:18px 20px 28px;flex:1}
+  .dbody section{margin-bottom:22px}
+  .dbody h4{margin:0 0 9px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:650}
+  .player{background:#0f1115;border-radius:11px;overflow:hidden;display:grid;place-items:center}
+  .player video,.player img{max-width:100%;max-height:46vh;display:block}
+  .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .kv div{background:var(--card);padding:8px 11px}
+  .kv .k{font-size:11.5px;color:var(--muted)}
+  .kv .v{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-all}
+  pre.prompt{
+    white-space:pre-wrap;word-break:break-word;background:#f7f8fb;border:1px solid var(--line);
+    border-radius:9px;padding:12px 13px;font-size:12.5px;line-height:1.6;max-height:340px;overflow:auto;margin:0;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#252a34
+  }
+  .reflist{display:flex;gap:8px;flex-wrap:wrap}
+  .reflist figure{margin:0;width:88px}
+  .reflist img{width:88px;height:88px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#f4f5f9}
+  .reflist figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:550}
+  .field input,.field textarea{
+    width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;color:var(--ink)
+  }
+  .field input:focus,.field textarea:focus{border-color:#b9bdf6;box-shadow:0 0 0 3px rgba(99,102,241,.13)}
+  .field textarea{resize:vertical;min-height:64px}
+  .tagedit{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+
+  /* ---------- 经验总结 ---------- */
+  .notes{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+  .nlist{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .nhead{padding:11px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px}
+  .nsearch{padding:10px 10px 6px}
+  .nlist .items{max-height:min(60vh,600px);overflow:auto;padding:4px 6px 8px}
+  .nitem{padding:9px 10px;border-radius:9px;cursor:pointer;display:flex;flex-direction:column;gap:3px;
+    border:1px solid transparent;transition:.12s}
+  .nitem:hover{background:#f6f7fb}
+  .nitem.on{background:var(--accent-soft);border-color:#dfe2fb}
+  .nitem .nt{font-weight:600;font-size:13.5px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;
+    -webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .nitem .nm{font-size:11.5px;color:var(--muted);display:flex;gap:9px;flex-wrap:wrap}
+  .nitem .nm .cnt{color:var(--accent-ink);font-weight:600}
+  .nempty{padding:26px 14px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.8}
+
+  .nmain{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;min-height:560px;overflow:hidden}
+  .ntool{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .ntool input.title{flex:1;min-width:170px;border:none;outline:none;font-size:15.5px;font-weight:650;
+    background:transparent;padding:4px 2px;color:var(--ink)}
+  .ntool input.title::placeholder{font-weight:500;color:#a9aebc}
+  .savestate{font-size:11.5px;color:var(--muted);min-width:78px;text-align:right;font-variant-numeric:tabular-nums}
+  .savestate.dirty{color:var(--warn)}
+  .npanes{display:grid;grid-template-columns:1fr 1fr;flex:1;min-height:0}
+  .neditor{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .panehead{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:650;
+    padding:7px 16px;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .panehead .kbd{text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;color:#9aa0ae;text-align:right;flex:1}
+  .neditor textarea{flex:1;border:none;outline:none;resize:none;padding:15px 17px;min-height:430px;
+    font-size:13.5px;line-height:1.8;background:#fdfdff;color:#252a34;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Microsoft YaHei",monospace}
+  .npreview{padding:15px 20px 26px;overflow:auto;max-height:70vh}
+  .npreview p{margin:0 0 10px}
+  .npreview .nh2{font-size:17px;font-weight:650;margin:16px 0 8px;line-height:1.4}
+  .npreview .nh3{font-size:15px;font-weight:650;margin:15px 0 7px}
+  .npreview .nh4,.npreview .nh5{font-size:13.5px;font-weight:650;margin:13px 0 6px;color:#374151}
+  .npreview .nul,.npreview .nol{margin:0 0 10px;padding-left:22px}
+  .npreview li{margin:3px 0}
+  .npreview .nq{margin:0 0 10px;padding:6px 12px;border-left:3px solid #d8dbf0;background:#f8f9fe;
+    color:#414651;border-radius:0 6px 6px 0}
+  .npreview .nhr{border:none;border-top:1px solid var(--line);margin:15px 0}
+  .npreview code{background:#f1f2f8;border-radius:4px;padding:1px 5px;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .npreview .ncode{background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:11px 13px;
+    overflow:auto;font-size:12.5px;line-height:1.6;margin:0 0 12px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .npreview .nph{color:#a9aebc}
+  .npreview a.caseref{color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;
+    padding:1px 6px;font-weight:600;text-decoration:none;font-size:12.5px}
+  .npreview a.caseref:hover{background:#e2e5ff}
+
+  .case{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;
+    padding:9px;margin:0 0 12px;background:#fbfbfe;cursor:pointer;transition:.14s}
+  .case:hover{border-color:#c9cdf5;box-shadow:0 6px 18px -10px rgba(79,70,229,.5)}
+  .case .cthumb{width:76px;height:54px;flex:none;border-radius:7px;overflow:hidden;background:#0f1115;position:relative}
+  .case .cthumb img,.case .cthumb video{width:100%;height:100%;object-fit:cover;display:block}
+  .case .cph{width:100%;height:100%;display:grid;place-items:center;color:#8b90a0;font-size:10.5px;background:#f0f1f5}
+  .cph{width:100%;height:100%;display:grid;place-items:center;color:#8b90a0;font-size:10.5px;background:#f0f1f5}
+  .cph.video{background:#141821;color:#9aa3b8;letter-spacing:.04em}
+  .case .cinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .case .ct{font-size:13.5px;font-weight:600;line-height:1.4;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;display:block}
+  .case .clabel{background:#eef7f4;color:#0f6b4f;border-radius:4px;padding:1px 5px;font-size:11px;
+    margin-right:6px;font-weight:600}
+  .case .cm{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .case .cgo{font-size:11.5px;color:var(--accent-ink);font-weight:600;flex:none}
+  .case.miss{border-style:dashed;background:#fff;color:#9aa0ae;cursor:default;font-size:12.5px;padding:11px}
+
+  .nplaceholder{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;
+    padding:60px 20px;color:var(--muted);text-align:center}
+  .nplaceholder h3{margin:0 0 6px;font-size:15px;color:var(--ink);font-weight:600}
+  .nplaceholder p{margin:0;font-size:13px;max-width:430px}
+  .notes.no-sel .npanes,.notes.no-sel .ntool{display:none}
+  .notes.no-sel .nplaceholder{display:flex}
+
+  .cpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(206px,1fr));gap:8px;
+    max-height:44vh;overflow:auto;padding-right:2px}
+  .cpickItem{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:9px;
+    padding:7px;text-align:left;background:#fff;transition:.14s}
+  .cpickItem:hover{border-color:#c9cdf5;background:#fbfbfe}
+  .cpickItem.picked{border-color:var(--ok);background:var(--ok-soft)}
+  .cpickItem .th{width:54px;height:40px;flex:none;border-radius:6px;overflow:hidden;background:#0f1115}
+  .cpickItem .th img,.cpickItem .th video{width:100%;height:100%;object-fit:cover;display:block}
+  .cpickItem .tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+  .cpickItem .t1{font-size:12.5px;font-weight:600;line-height:1.35;overflow:hidden;display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .cpickItem .t2{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cpHint{font-size:12px;color:var(--muted);margin-right:auto}
+  .backs{display:flex;gap:6px;flex-wrap:wrap}
+  .backlink{border:1px solid #dfe2fb;background:var(--accent-soft);color:var(--accent-ink);
+    border-radius:7px;padding:4px 9px;font-size:12.5px;font-weight:600}
+  .backlink:hover{background:#e2e5ff}
+  .mutedsm{font-size:12.5px;color:#9aa0ae;margin:0}
+
+  @media (max-width:1000px){
+    .notes{grid-template-columns:1fr}
+    .npanes{grid-template-columns:1fr}
+    .neditor{border-right:none;border-bottom:1px solid var(--line)}
+    .npreview{max-height:none}
+    .nlist .items{max-height:240px}
+  }
+
+  /* ---------- 弹窗 ---------- */
+  .modal{position:fixed;inset:0;z-index:80;display:none;place-items:center;padding:22px}
+  .modal.show{display:grid}
+  .modal .box{
+    background:var(--card);border-radius:14px;width:min(680px,100%);max-height:88vh;display:flex;flex-direction:column;
+    box-shadow:0 24px 64px -16px rgba(16,24,40,.4);position:relative;z-index:2;overflow:hidden
+  }
+  .modal .box.wide{width:min(900px,100%)}
+  .mhead{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .mhead h3{margin:0;font-size:14.5px;font-weight:650;flex:1}
+  .mbody{padding:16px 18px;overflow:auto}
+  .mfoot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end;background:#fbfbfd}
+  .lightbox .box{background:transparent;box-shadow:none;width:auto;max-width:94vw}
+  .lightbox video,.lightbox img{max-width:94vw;max-height:88vh;border-radius:10px;display:block;background:#000}
+
+  /* ---------- Toast ---------- */
+  #toasts{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{
+    background:#16181d;color:#fff;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:500;
+    box-shadow:0 12px 30px -10px rgba(0,0,0,.5);animation:pop .2s ease-out;display:flex;gap:8px;align-items:center
+  }
+  .toast.ok{background:#0d7a46}
+  .toast.err{background:#b42318}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .sk{background:linear-gradient(90deg,#eef0f5 25%,#f6f7fa 37%,#eef0f5 63%);background-size:400% 100%;animation:sh 1.2s infinite}
+  @keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+  @media (max-width:640px){
+    .hwrap,.tabs,main{padding-left:14px;padding-right:14px}
+    .grid{grid-template-columns:1fr}
+    .brand p{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <div class="brand">
+      <div class="logo">CV</div>
+      <div>
+        <h1>Comfy 经验库</h1>
+        <p>ComfyUI · 只收录你觉得好的那一轮</p>
+      </div>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">连接中…</span></div>
+    <button class="btn sm" id="refreshBtn">刷新</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="pending">待筛选 <span class="badge" id="badgePending">0</span></button>
+    <button class="tab" data-tab="vault">经验库 <span class="badge" id="badgeVault">0</span></button>
+    <button class="tab" data-tab="notes">经验总结 <span class="badge" id="badgeNotes">0</span></button>
+  </div>
+</header>
+
+<main>
+  <!-- 待筛选 -->
+  <section id="viewPending">
+    <div class="hint">
+      <div>跑完 <b>ComfyUI</b> 觉得这一轮满意 → 在本页点 <span class="k">保留这轮</span>，提示词 / 种子 / 参考图 / 成品 / 分辨率 / 时长 / 耗时 会一起入库。<br>
+      不满意的直接放着不动，<b>不会</b>被记录；这页只是预览队列，不会自己收录任何东西。</div>
+    </div>
+    <div class="bar">
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="pFilter" placeholder="按提示词 / 种子筛选这页记录…" />
+      </div>
+      <button class="btn sm" id="onlySuccess">只看成功的</button>
+    </div>
+    <div class="tagrow" id="flowRow" style="margin:-6px 0 14px"></div>
+    <div class="grid" id="pendingGrid"></div>
+  </section>
+
+  <!-- 经验库 -->
+  <section id="viewVault" style="display:none">
+    <div class="bar">
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="vSearch" placeholder="搜索标题 / 提示词 / 备注 / 种子 / 标签…" />
+      </div>
+      <div class="tagrow" id="vFlowRow"></div>
+      <div class="tagrow" id="tagRow"></div>
+    </div>
+    <div class="grid" id="vaultGrid"></div>
+  </section>
+
+  <!-- 经验总结 -->
+  <section id="viewNotes" style="display:none">
+    <div class="hint">
+      <div>写下跨案例的总体经验；想把某个具体产出当例子，就点 <span class="k">插入案例</span>。
+        案例卡<b>不复制内容</b>，点开就是那一轮的完整详情，经验库里改了标题/备注这里也跟着变。</div>
+    </div>
+    <div class="notes no-sel">
+      <aside class="nlist">
+        <div class="nhead">
+          <button class="btn primary sm" id="newNote" style="flex:1;justify-content:center">+ 新建总结</button>
+        </div>
+        <div class="nsearch">
+          <div class="search" style="max-width:none">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="nSearch" placeholder="搜索总结…" />
+          </div>
+        </div>
+        <div class="items" id="noteList"></div>
+      </aside>
+
+      <div class="nmain">
+        <div class="ntool">
+          <input class="title" id="noteTitle" placeholder="给这篇总结起个名字，例如：人像打光通用打法" />
+          <span class="savestate" id="noteState"></span>
+          <button class="btn sm" id="insertCase">插入案例</button>
+          <button class="btn sm" id="exportNote">导出 .md</button>
+          <button class="btn danger sm" id="deleteNote">删除</button>
+        </div>
+        <div class="npanes" id="notePanes">
+          <div class="neditor">
+            <div class="panehead">编辑<span class="kbd">支持 # 标题 / - 列表 / **加粗** / [[案例]]</span></div>
+            <textarea id="noteBody" placeholder="怎么写都行。例如：
+
+## 打光
+侧逆光 + 低补光最稳，8 步就够，再多只会让皮肤发灰。
+
+## 典型例子"></textarea>
+          </div>
+          <div class="npreview" id="notePreview"></div>
+        </div>
+        <div class="nplaceholder" id="notePlaceholder">
+          <h3>选一篇总结，或新建一篇</h3>
+          <p>左边列表是已保存的总结。正文里可以随时插入经验库里的案例作为例子。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- 详情抽屉 -->
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <h2 id="dTitle">—</h2>
+    <button class="btn ghost sm" id="dClose">关闭</button>
+  </div>
+  <div class="dbody" id="dBody"></div>
+</aside>
+
+<!-- 通用弹窗 -->
+<div class="modal" id="modal">
+  <div class="box" id="modalBox">
+    <div class="mhead"><h3 id="mTitle">提示词</h3><button class="btn ghost sm" id="mClose">关闭</button></div>
+    <div class="mbody" id="mBody"></div>
+    <div class="mfoot" id="mFoot"></div>
+  </div>
+</div>
+
+<!-- 灯箱 -->
+<div class="modal lightbox" id="lightbox">
+  <div class="box" id="lbBox"></div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+const state = { tab: 'pending', runs: [], items: [], tags: {}, flows: [], vflows: [],
+                filter: '', onlySuccess: false, pflow: '', vq: '', vtag: '', vflow: '',
+                current: null, status: null, loading: false,
+                notes: [], notesQ: '', note: null, cases: {}, noteDirty: false, noteTimer: null };
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtDur(ms) {
+  if (!ms) return '—';
+  if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+  const m = Math.floor(ms / 60000), s = Math.round((ms % 60000) / 1000);
+  return m + '分' + String(s).padStart(2, '0') + '秒';
+}
+function fmtSec(s) { return s ? (+s).toFixed(1).replace(/\.0$/, '') + 's' : '—'; }
+function fmtTime(iso) {
+  if (!iso) return '—';
+  return iso.slice(5, 16).replace(' ', ' ');
+}
+function toast(msg, kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(6px)'; el.style.transition = '.25s'; }, 2400);
+  setTimeout(() => el.remove(), 2800);
+}
+async function api(path, opts) {
+  const r = await fetch(path, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts || {}));
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+
+/* ---------------- 状态 ---------------- */
+async function loadStatus() {
+  try {
+    const s = await api('/api/status');
+    state.status = s;
+    const dot = $('#status .dot'), txt = $('#statusText');
+    if (s.comfy) {
+      dot.className = 'dot on';
+      txt.textContent = 'ComfyUI 已连接 · v' + (s.version || '?');
+      $('#status').title = s.comfy_url;
+    } else {
+      dot.className = 'dot off';
+      txt.textContent = 'ComfyUI 未连接';
+      $('#status').title = (s.comfy_error || '') + '\n' + s.comfy_url;
+    }
+    $('#badgeVault').textContent = s.count;
+    if (s.note_count != null && !state.notesQ) $('#badgeNotes').textContent = s.note_count;
+  } catch (e) {
+    $('#status .dot').className = 'dot off';
+    $('#statusText').textContent = '服务异常';
+  }
+}
+
+/* ---------------- 待筛选 ---------------- */
+function runCard(r) {
+  const isVideo = r.media_kind === 'video';
+  const isAudio = r.media_kind === 'audio';
+  const portrait = r.height && r.width && r.height > r.width * 1.1;
+  const media = r.media_url
+    ? (isVideo
+        ? `<video data-src="${r.media_url}#t=0.1" preload="none" muted loop playsinline></video>
+           <div class="vp"><span class="vplay">▶</span><span class="vlabel">视频预览</span></div>`
+        : isAudio ? `<div class="ph">🎵 音频输出</div>`
+        : `<img src="${r.media_url}" loading="lazy" alt="" />`)
+    : `<div class="ph">${r.status === 'error' ? '这一轮报错了，没有产出' : '没有可预览的成品'}</div>`;
+  const stPill = r.status === 'success' ? '<span class="pill ok">成功</span>'
+              : r.status === 'error' ? '<span class="pill bad">报错</span>'
+              : `<span class="pill">${esc(r.status)}</span>`;
+  const refs = (r.refs || []).slice(0, 6).map(f =>
+    f.kind === 'image' ? `<img src="${f.url}" title="${esc(f.label)}" loading="lazy" alt="" />`
+    : `<span class="more">${esc(f.label)}</span>`).join('');
+  const moreRefs = (r.refs || []).length > 6 ? `<span class="more">+${r.refs.length - 6}</span>` : '';
+  const chips = [
+    r.width ? `<span class="chip">${r.width}×${r.height}</span>` : '',
+    r.duration_s ? `<span class="chip">${fmtSec(r.duration_s)}</span>` : '',
+    r.fps ? `<span class="chip">${r.fps}fps</span>` : '',
+    r.seed != null ? `<span class="chip seed">seed ${r.seed}</span>` : '',
+    r.steps ? `<span class="chip">${r.steps} 步</span>` : '',
+    r.elapsed_ms ? `<span class="chip time">耗时 ${fmtDur(r.elapsed_ms)}</span>` : '',
+  ].filter(Boolean).join('');
+
+  const actions = r.kept
+    ? `<button class="btn grow" data-act="open-kept" data-pid="${r.prompt_id}">已在经验库 · 查看</button>`
+    : `<button class="btn primary grow" data-act="keep" data-pid="${r.prompt_id}">保留这轮</button>
+       <button class="btn sm" data-act="keep-note" data-pid="${r.prompt_id}" title="加标题/标签/备注后收录">加备注</button>`;
+
+  return `<article class="card" data-pid="${r.prompt_id}">
+    <div class="media ${portrait ? 'portrait' : ''}" data-act="lightbox" data-pid="${r.prompt_id}">
+      ${media}
+      <div class="badges">${stPill}${r.kept ? '<span class="pill kept">已收录</span>' : ''}
+        <span class="pill flowpill" title="${esc(r.flow ? (r.flow.workflow_file || r.flow.name) : '')}">${esc(r.flow ? r.flow.name : '')}</span></div>
+      ${r.media_count > 1 ? `<div class="pill" style="position:absolute;left:9px;bottom:9px;background:rgba(17,19,24,.72)">×${r.media_count}</div>` : ''}
+      ${(r.duration_s || r.width) ? `<div class="dur">${[r.duration_s ? fmtSec(r.duration_s) : '', r.width ? r.width + '×' + r.height : ''].filter(Boolean).join(' · ')}</div>` : ''}
+    </div>
+    <div class="body">
+      <p class="ttl">${esc(r.title_suggest || '(无提示词)')}</p>
+      <div class="chips">${chips}</div>
+      ${refs ? `<div class="refs">${refs}${moreRefs}</div>` : ''}
+      <div class="actions">
+        ${actions}
+        <button class="btn ghost sm" data-act="prompt" data-pid="${r.prompt_id}">提示词</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderPending() {
+  const grid = $('#pendingGrid');
+  const flowRow = $('#flowRow');
+  const flows = state.flows || [];
+  flowRow.innerHTML = flows.length > 1
+    ? `<button class="tagchip ${state.pflow === '' ? 'on' : ''}" data-flow="">全部工作流</button>` +
+      flows.map(f => `<button class="tagchip ${state.pflow === f.id ? 'on' : ''}" data-flow="${esc(f.id)}">${esc(f.name)}<span class="n">${f.count}</span></button>`).join('')
+    : '';
+  let runs = state.runs;
+  if (state.pflow) runs = runs.filter(r => r.flow && r.flow.id === state.pflow);
+  if (state.onlySuccess) runs = runs.filter(r => r.status === 'success');
+  if (state.filter) {
+    const q = state.filter.toLowerCase();
+    runs = runs.filter(r => (r.title_suggest || '').toLowerCase().includes(q)
+      || (r.prompt_text || '').toLowerCase().includes(q)
+      || String(r.seed || '').includes(q));
+  }
+  if (!state.runs.length) {
+    grid.innerHTML = `<div class="empty"><h3>还没有读到执行记录</h3>
+      <p>确认 ComfyUI 正在运行，然后跑一轮，回来点“刷新”。</p></div>`;
+    return;
+  }
+  if (!runs.length) {
+    grid.innerHTML = `<div class="empty"><h3>没有匹配的记录</h3><p>换个工作流或关键词，或关掉“只看成功的”。</p></div>`;
+    return;
+  }
+  grid.innerHTML = runs.map(runCard).join('');
+  bindMedia(grid);
+  $('#badgePending').textContent = runs.filter(r => !r.kept && r.status === 'success').length;
+}
+
+function bindMedia(root) {
+  $$('.media video', root).forEach(v => {
+    const holder = v.closest('.media');
+    const start = () => {
+      if (!v.src) v.src = v.dataset.src;          // 悬停时才真正拉流，避免一屏 60 个视频
+      v.play().catch(() => {});
+      holder.classList.add('playing');
+    };
+    holder.addEventListener('mouseenter', start);
+    holder.addEventListener('mouseleave', () => {
+      v.pause();
+      holder.classList.remove('playing');
+    });
+  });
+}
+
+async function loadPending(silent) {
+  if (!silent) $('#pendingGrid').innerHTML = Array(3).fill('<div class="card" style="height:320px"><div class="sk" style="height:100%"></div></div>').join('');
+  try {
+    const j = await api('/api/pending?limit=60');
+    state.runs = j.runs || [];
+    state.flows = j.flows || [];
+    const sig = j.runs.map(r => r.prompt_id + r.kept).join('|') + '#' + state.flows.map(f => f.id).join(',');
+    if (!silent || sig !== state.lastSig) renderPending();
+    state.lastSig = sig;
+    $('#badgePending').textContent = (j.runs || []).filter(r => !r.kept && r.status === 'success').length;
+  } catch (e) {
+    $('#pendingGrid').innerHTML = `<div class="empty"><h3>读不到 ComfyUI 执行历史</h3>
+      <p>${esc(e.message)}</p><p style="margin-top:8px">ComfyUI 开着的话点右上角“刷新”重试。</p></div>`;
+  }
+}
+
+/* ---------------- 保留 ---------------- */
+async function keepRun(pid, extra) {
+  const btns = $$(`[data-pid="${pid}"][data-act^="keep"]`);
+  btns.forEach(b => { b.disabled = true; b.dataset._t = b.textContent; b.textContent = '收录中…'; });
+  try {
+    const j = await api('/api/keep', { method: 'POST', body: JSON.stringify(Object.assign({ prompt_id: pid }, extra || {})) });
+    toast('已收录到经验库', 'ok');
+    const r = state.runs.find(x => x.prompt_id === pid);
+    if (r) r.kept = true;
+    renderPending();
+    loadStatus();
+    if (!Object.keys(extra || {}).length) loadVault(true);
+  } catch (e) {
+    toast('收录失败：' + e.message, 'err');
+    btns.forEach(b => { b.disabled = false; b.textContent = b.dataset._t || '保留这轮'; });
+  }
+}
+
+function openKeepDialog(pid) {
+  const r = state.runs.find(x => x.prompt_id === pid);
+  if (!r) return;
+  $('#mTitle').textContent = '收录这一轮';
+  $('#mBody').innerHTML = `
+    <div class="field"><label>标题</label><input id="kTitle" value="${esc(r.title_suggest || '')}" placeholder="给这轮起个名字" /></div>
+    <div class="field"><label>标签（逗号或空格分隔，例如：运镜, 双人, 可用）</label><input id="kTags" placeholder="运镜, 打光" /></div>
+    <div class="field"><label>备注（为什么这轮好？下次怎么复用？）</label><textarea id="kNote" placeholder="例如：8步就有质感，首帧参考强度刚好，动作没崩"></textarea></div>`;
+  $('#mFoot').innerHTML = `<button class="btn" id="kCancel">取消</button><button class="btn primary" id="kOk">确认收录</button>`;
+  $('#mFoot').classList.add('only-pad');
+  $('#modal').classList.add('show');
+  $('#kCancel').onclick = closeModal;
+  $('#kOk').onclick = async () => {
+    const extra = { title: $('#kTitle').value.trim(), tags: $('#kTags').value.trim(), note: $('#kNote').value.trim() };
+    closeModal();
+    await keepRun(pid, extra);
+  };
+  setTimeout(() => $('#kTitle').select(), 60);
+}
+
+/* ---------------- 经验库 ---------------- */
+function vaultCard(it) {
+  const isVideo = it.media_kind === 'video';
+  const src = it.media_url || it.cover_url;
+  const media = src
+    ? (isVideo ? `<video data-src="${src}#t=0.1" preload="none" muted loop playsinline></video>
+                  <div class="vp"><span class="vplay">▶</span><span class="vlabel">视频预览</span></div>`
+               : `<img src="${src}" loading="lazy" alt="" />`)
+    : `<div class="ph">文件缺失</div>`;
+  return `<article class="card" data-id="${it.id}">
+    <div class="media" data-act="detail" data-id="${it.id}">
+      ${media}
+      <div class="badges"><span class="pill kept">已收录</span></div>
+      ${(it.duration_s || it.width) ? `<div class="dur">${[it.duration_s ? fmtSec(it.duration_s) : '', it.width ? it.width + '×' + it.height : ''].filter(Boolean).join(' · ')}</div>` : ''}
+    </div>
+    <div class="body">
+      <p class="ttl">${esc(it.title || '(未命名)')}</p>
+      <div class="chips">
+        ${it.flow ? `<span class="chip flowchip" title="${esc((it.meta && it.meta.flow && it.meta.flow.workflow_file) || it.flow)}" style="background:#eef7f4;border-color:#dcefe8;color:#0f6b4f">${esc(it.flow)}</span>` : ''}
+        ${it.width ? `<span class="chip">${it.width}×${it.height}</span>` : ''}
+        ${it.duration_s ? `<span class="chip">${fmtSec(it.duration_s)}</span>` : ''}
+        ${it.seed ? `<span class="chip seed">seed ${esc(it.seed)}</span>` : ''}
+        ${it.elapsed_ms ? `<span class="chip time">耗时 ${fmtDur(it.elapsed_ms)}</span>` : ''}
+      </div>
+      ${it.tags.length ? `<div class="chips">${it.tags.map(t => `<span class="chip" style="background:#f3f0ff;border-color:#e6e0fb;color:#5b21b6">${esc(t)}</span>`).join('')}</div>` : ''}
+      <div class="actions">
+        <button class="btn grow" data-act="detail" data-id="${it.id}">查看详情</button>
+        <button class="btn ghost sm" data-act="copy" data-id="${it.id}">复制参数</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderVault() {
+  const grid = $('#vaultGrid');
+  const tagRow = $('#tagRow');
+  const vFlowRow = $('#vFlowRow');
+  const tags = state.tags || {};
+  const names = Object.keys(tags).sort((a, b) => tags[b] - tags[a]);
+  const vflows = state.vflows || [];
+  vFlowRow.innerHTML = vflows.length > 1
+    ? `<button class="tagchip ${state.vflow === '' ? 'on' : ''}" data-vflow="">全部</button>` +
+      vflows.map(f => `<button class="tagchip ${state.vflow === f.id ? 'on' : ''}" data-vflow="${esc(f.id)}">${esc(f.name)}<span class="n">${f.count}</span></button>`).join('')
+    : '';
+  tagRow.innerHTML = names.slice(0, 14).map(t => `<button class="tagchip ${state.vtag === t ? 'on' : ''}" data-tag="${esc(t)}">${esc(t)}<span class="n">${tags[t]}</span></button>`).join('');
+  if (!state.items.length) {
+    grid.innerHTML = `<div class="empty"><h3>${state.vq || state.vtag || state.vflow ? '没有匹配的经验' : '经验库还是空的'}</h3>
+      <p>${state.vq || state.vtag || state.vflow ? '换个关键词或标签再试。' : '去「待筛选」把满意的那一轮点一下“保留这轮”，就会出现在这里。'}</p></div>`;
+    return;
+  }
+  grid.innerHTML = state.items.map(vaultCard).join('');
+  bindMedia(grid);
+  $('#badgeVault').textContent = state.status ? state.status.count : state.items.length;
+}
+
+async function loadVault(silent) {
+  const q = encodeURIComponent(state.vq), t = encodeURIComponent(state.vtag), f = encodeURIComponent(state.vflow);
+  try {
+    const j = await api(`/api/vault?q=${q}&tag=${t}&flow=${f}`);
+    state.items = j.items || [];
+    state.tags = j.tags || {};
+    state.vflows = j.flows || [];
+    renderVault();
+  } catch (e) { toast('读取经验库失败：' + e.message, 'err'); }
+}
+
+function copyText(text, msg) {
+  const done = () => toast(msg || '已复制', 'ok');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback());
+  } else fallback();
+  function fallback() {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败', 'err'); }
+    ta.remove();
+  }
+}
+
+function paramsText(it) {
+  const m = it.meta || {};
+  const models = m.models || {};
+  const lines = [
+    `# ${it.title || ''}`,
+    `工作流：${it.flow || '-'}`,
+    (m.flow && m.flow.workflow_file) ? `工作流文件：${m.flow.workflow_file}` : '',
+    (m.flow && m.flow.family) ? `模型家族：${m.flow.family}` : '',
+    `生成时间：${it.created_at}　耗时：${fmtDur(it.elapsed_ms)}`,
+    `分辨率：${it.width}×${it.height}${it.duration_s ? '　时长：' + fmtSec(it.duration_s) : ''}　fps：${m.fps || '-'}　帧数：${m.frame_count || '-'}`,
+    `种子：${it.seed ?? '-'}　步数：${it.steps || '-'}`,
+    `采样器：${JSON.stringify(m.sampler || {})}`,
+    `模型：${[...(models.unet || []), ...(models.ckpt || [])].join(', ') || '-'}`,
+    (models.lora || []).length ? `LoRA：${models.lora.map(l => `${l.name}(${l.strength})`).join(', ')}` : '',
+    it.tags.length ? `标签：${it.tags.join(', ')}` : '',
+    it.note ? `备注：${it.note}` : '',
+    '', '## 提示词', it.prompt_text || '',
+    it.negative_text ? '\n## 反向提示词\n' + it.negative_text : '',
+  ];
+  return lines.filter(l => l !== '').join('\n');
+}
+
+/* ---------------- 详情 ---------------- */
+async function openDetail(id) {
+  let it = state.items.find(x => x.id == id);
+  if (!it) {
+    try { const j = await api('/api/item/' + id); it = j.item; }
+    catch (e) { toast('打不开这条案例：' + e.message, 'err'); return; }
+  }
+  state.current = it;
+  const m = it.meta || {};
+  const isVideo = it.media_kind === 'video';
+  const player = it.media_url
+    ? (isVideo ? `<video src="${it.media_url}" controls preload="metadata" playsinline></video>`
+               : `<img src="${it.media_url}" alt="" />`)
+    : '<div style="color:#9aa0ae;padding:40px">成品文件缺失</div>';
+  const refs = (it.refs || []).filter(r => r.url);
+  $('#dTitle').textContent = it.title || '(未命名)';
+  $('#dBody').innerHTML = `
+    <section><div class="player">${player}</div></section>
+    <section>
+      <h4>参数</h4>
+      <div class="kv">
+        <div style="grid-column:1/-1"><div class="k">工作流全称</div><div class="v">${esc(it.flow || '-')}</div>
+          ${(m.flow && m.flow.workflow_file) ? `<div class="k" style="margin-top:5px;font-weight:500">文件：${esc(m.flow.workflow_file)}</div>` : ''}</div>
+        <div><div class="k">模型家族</div><div class="v">${esc((m.flow && m.flow.family) || '-')}</div></div>
+        <div><div class="k">分辨率</div><div class="v">${it.width}×${it.height}</div></div>
+        <div><div class="k">时长</div><div class="v">${it.duration_s ? fmtSec(it.duration_s) : '—（图片）'}</div></div>
+        <div><div class="k">帧率 / 帧数</div><div class="v">${m.fps || '-'} / ${m.frame_count || '-'}</div></div>
+        <div><div class="k">种子</div><div class="v">${esc(it.seed ?? '-')}</div></div>
+        <div><div class="k">步数</div><div class="v">${it.steps || '-'}</div></div>
+        <div><div class="k">耗时</div><div class="v">${fmtDur(it.elapsed_ms)}</div></div>
+        <div><div class="k">生成时间</div><div class="v">${esc(it.created_at || '-')}</div></div>
+      </div>
+    </section>
+    <section>
+      <h4>模型</h4>
+      <div class="chips">
+        ${((m.models && m.models.unet) || []).map(u => `<span class="chip">${esc(u)}</span>`).join('') || '<span class="chip">—</span>'}
+        ${((m.models && m.models.lora) || []).map(l => `<span class="chip" style="background:#f3f0ff;border-color:#e6e0fb;color:#5b21b6">${esc(l.name)} · ${esc(l.strength)}</span>`).join('')}
+      </div>
+    </section>
+    ${refs.length ? `<section><h4>参考图 / 首帧</h4><div class="reflist">
+        ${refs.map(r => `<figure><img src="${r.url}" alt="" data-act="lightbox-img" data-src="${r.url}" /><figcaption title="${esc(r.filename)}">${esc(r.label)}</figcaption></figure>`).join('')}
+      </div></section>` : ''}
+    <section>
+      <h4>提示词 <button class="btn ghost sm" data-act="copy-prompt" style="float:right;margin-top:-4px">复制</button></h4>
+      <pre class="prompt">${esc(it.prompt_text || '(空)')}</pre>
+      ${it.negative_text ? `<h4 style="margin-top:14px">反向提示词</h4><pre class="prompt" style="max-height:150px">${esc(it.negative_text)}</pre>` : ''}
+    </section>
+    <section>
+      <h4>标签与备注</h4>
+      <div class="field"><label>标题</label><input id="eTitle" value="${esc(it.title)}" /></div>
+      <div class="field"><label>标签（逗号分隔）</label><input id="eTags" value="${esc(it.tags.join(', '))}" /></div>
+      <div class="field"><label>备注</label><textarea id="eNote" placeholder="这轮为什么好，下次怎么复用">${esc(it.note)}</textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary sm" data-act="save-meta" data-id="${it.id}">保存修改</button>
+        <button class="btn sm" data-act="copy" data-id="${it.id}">复制全部参数</button>
+        <span style="flex:1"></span>
+        <button class="btn danger sm" data-act="del" data-id="${it.id}">移出经验库</button>
+      </div>
+      <p style="font-size:11.5px;color:#9aa0ae;margin:10px 0 0">文件位置：${esc((state.status && state.status.vault_dir) || '')}\\${esc(it.dir_name)}</p>
+    </section>
+    <section>
+      <h4>被总结引用</h4>
+      ${(() => {
+        const backs = (state.notes || []).filter(n => (n.refs || []).includes(Number(it.id)));
+        return backs.length
+          ? `<div class="backs">${backs.map(n =>
+              `<button class="backlink" data-act="open-note" data-nid="${n.id}">${esc(n.title || '未命名总结')}</button>`).join('')}</div>`
+          : '<p class="mutedsm">还没有总结引用这一条。</p>';
+      })()}
+      <button class="btn sm" data-act="note-add" data-id="${it.id}" style="margin-top:9px">+ 加入一篇总结</button>
+    </section>`;
+  $('#drawer').classList.add('show');
+  $('#scrim').classList.add('show');
+}
+
+function closeDrawer() {
+  $('#drawer').classList.remove('show');
+  $('#scrim').classList.remove('show');
+  state.current = null;
+}
+
+/* ---------------- 弹窗 ---------------- */
+function closeModal() { $('#modal').classList.remove('show'); $('#mFoot').classList.remove('only-pad'); }
+function showPrompt(pid) {
+  const r = state.runs.find(x => x.prompt_id === pid);
+  if (!r) return;
+  $('#mTitle').textContent = '完整提示词';
+  $('#mBody').innerHTML = `<pre class="prompt" style="max-height:52vh">${esc(r.prompt_text || '(空)')}</pre>
+    <div class="chips" style="margin-top:10px">
+      ${r.seed != null ? `<span class="chip seed">seed ${r.seed}</span>` : ''}
+      ${r.width ? `<span class="chip">${r.width}×${r.height}</span>` : ''}
+      ${r.steps ? `<span class="chip">${r.steps} 步</span>` : ''}
+      <span class="chip time">耗时 ${fmtDur(r.elapsed_ms)}</span>
+      <span class="chip">${esc(r.created_at)}</span>
+    </div>`;
+  $('#mFoot').innerHTML = `<button class="btn" id="pCopy">复制提示词</button><button class="btn primary" id="pOk">关闭</button>`;
+  $('#modal').classList.add('show');
+  $('#pCopy').onclick = () => copyText(r.prompt_text || '', '提示词已复制');
+  $('#pOk').onclick = closeModal;
+}
+function showLightbox(pid) {
+  const r = state.runs.find(x => x.prompt_id === pid);
+  if (!r || !r.media_url) return;
+  $('#lbBox').innerHTML = r.media_kind === 'video'
+    ? `<video src="${r.media_url}" controls autoplay loop playsinline></video>`
+    : `<img src="${r.media_url}" alt="" />`;
+  $('#lightbox').classList.add('show');
+}
+function closeLightbox() { $('#lightbox').classList.remove('show'); $('#lbBox').innerHTML = ''; }
+
+/* ---------------- 经验总结 ---------------- */
+function noteState(text, dirty) {
+  const el = $('#noteState');
+  if (!el) return;
+  el.textContent = text || '';
+  el.classList.toggle('dirty', !!dirty);
+}
+
+async function loadNotes(silent) {
+  try {
+    const j = await api('/api/notes?q=' + encodeURIComponent(state.notesQ));
+    state.notes = j.notes || [];
+    renderNoteList();
+    if (!state.notesQ) $('#badgeNotes').textContent = state.notes.length;
+  } catch (e) { if (!silent) toast('读取总结失败：' + e.message, 'err'); }
+}
+
+function renderNoteList() {
+  const box = $('#noteList');
+  if (!state.notes.length) {
+    box.innerHTML = `<div class="nempty">${state.notesQ ? '没有匹配的总结'
+      : '还没有总结<br>点上面「+ 新建总结」开始写'}</div>`;
+    return;
+  }
+  box.innerHTML = state.notes.map(n => `
+    <div class="nitem ${state.note && state.note.id === n.id ? 'on' : ''}" data-nid="${n.id}">
+      <div class="nt">${esc(n.title || '未命名总结')}</div>
+      <div class="nm"><span>${fmtTime(n.updated_at)}</span>
+        ${n.refs.length ? `<span class="cnt">引用 ${n.refs.length} 个案例</span>` : '<span>无案例引用</span>'}</div>
+    </div>`).join('');
+}
+
+async function openNote(nid) {
+  if (state.noteDirty) await saveNote(true);
+  try {
+    const j = await api('/api/note/' + nid);
+    state.note = j.note;
+    state.cases = j.cases || {};
+    state.noteDirty = false;
+    clearTimeout(state.noteTimer);
+    $('#noteTitle').value = j.note.title || '';
+    $('#noteBody').value = j.note.content || '';
+    $('.notes').classList.remove('no-sel');
+    renderPreview();
+    noteState('已保存 ' + String(j.note.updated_at || '').slice(11, 16));
+    renderNoteList();
+  } catch (e) { toast('打开失败：' + e.message, 'err'); }
+}
+
+async function newNote() {
+  if (state.noteDirty) await saveNote(true);
+  try {
+    const j = await api('/api/notes', { method: 'POST', body: JSON.stringify({ title: '' }) });
+    await loadNotes(true);
+    await openNote(j.note.id);
+    $('#noteTitle').focus();
+    $('#noteTitle').select();
+  } catch (e) { toast('新建失败：' + e.message, 'err'); }
+}
+
+async function saveNote(silent) {
+  if (!state.note) return;
+  if (!state.noteDirty) { return; }
+  const id = state.note.id;
+  const payload = { title: $('#noteTitle').value.trim(), content: $('#noteBody').value };
+  noteState('保存中…', true);
+  try {
+    const j = await api('/api/note/' + id, { method: 'PUT', body: JSON.stringify(payload) });
+    if (state.note && state.note.id === id) {
+      state.note = j.note;
+      state.noteDirty = false;
+      noteState('已保存 ' + String(j.note.updated_at || '').slice(11, 16));
+      // 手写 [[id]] 时前端还不知道这条案例，补一次案例数据，卡片才渲染得出来
+      const missing = (j.note.refs || []).filter(r => !(state.cases || {})[String(r)]);
+      if (missing.length) {
+        try {
+          const full = await api('/api/note/' + id);
+          state.cases = Object.assign({}, state.cases, full.cases || {});
+          renderPreview();
+        } catch (e) { /* 缺数据就先显示占位，不影响保存 */ }
+      }
+    }
+    loadNotes(true);
+    if (!silent) toast('已保存', 'ok');
+  } catch (e) {
+    noteState('保存失败', true);
+    toast('保存失败：' + e.message, 'err');
+  }
+}
+
+function onNoteInput() {
+  if (!state.note) return;
+  state.noteDirty = true;
+  noteState('编辑中…', true);
+  renderPreview();
+  clearTimeout(state.noteTimer);
+  state.noteTimer = setTimeout(() => saveNote(true), 1100);
+}
+
+function renderPreview() {
+  const el = $('#notePreview');
+  if (el) el.innerHTML = mdToHtml($('#noteBody').value, state.cases);
+}
+
+/* 极简 markdown 渲染：只做笔记真正会用到的那些语法 */
+function mdInline(s) {
+  let t = esc(s);
+  t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  t = t.replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  t = t.replace(/\[\[(\d+)(?:\|([^\]]*))?\]\]/g, (m, id, label) =>
+    `<a href="#" class="caseref" data-act="case-open" data-id="${id}">${label || ('案例 #' + id)}</a>`);
+  return t;
+}
+
+function caseLite(it) {
+  return { id: it.id, title: it.title, flow: it.flow, media_url: it.media_url,
+           cover_url: it.cover_url, media_kind: it.media_kind, width: it.width,
+           height: it.height, duration_s: it.duration_s, seed: it.seed, tags: it.tags };
+}
+
+function caseCard(id, label, cases) {
+  const c = (cases || {})[String(id)] || (state.cases || {})[String(id)];
+  if (!c) return `<div class="case miss"><b>案例 #${id}</b> 已移出经验库（引用还在，内容没了）</div>`;
+  const img = c.cover_url || (c.media_kind === 'video' ? '' : c.media_url);
+  const thumb = img ? `<img src="${img}" loading="lazy" alt="" />`
+    : (c.media_kind === 'video'
+        ? `<div class="cph video">▶ 视频</div>`
+        : `<div class="cph">无预览</div>`);
+  const meta = [c.flow || '', c.width ? c.width + '×' + c.height : '',
+                c.duration_s ? fmtSec(c.duration_s) : '',
+                c.seed ? 'seed ' + c.seed : ''].filter(Boolean).join(' · ');
+  return `<div class="case" data-act="case-open" data-id="${c.id}" title="点开看这一轮的完整参数">
+    <div class="cthumb">${thumb}</div>
+    <div class="cinfo">
+      <div class="ct">${label ? `<span class="clabel">${label}</span>` : ''}${esc(c.title || '(未命名)')}</div>
+      <div class="cm">${esc(meta)}</div>
+    </div><span class="cgo">详情 →</span>
+  </div>`;
+}
+
+function mdToHtml(src, cases) {
+  const lines = String(src || '').replace(/\r\n/g, '\n').split('\n');
+  const out = [];
+  let i = 0, list = null, para = [];
+  const flushPara = () => { if (para.length) { out.push('<p>' + para.map(mdInline).join('<br>') + '</p>'); para = []; } };
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  while (i < lines.length) {
+    const ln = lines[i];
+    if (/^\s*```/.test(ln)) {
+      flushPara(); closeList();
+      const buf = []; i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++;
+      out.push('<pre class="ncode">' + esc(buf.join('\n')) + '</pre>');
+      continue;
+    }
+    const only = ln.trim().match(/^\[\[(\d+)(?:\|([^\]]*))?\]\]$/);
+    if (only) { flushPara(); closeList(); out.push(caseCard(+only[1], only[2], cases)); i++; continue; }
+    const h = ln.match(/^(#{1,4})\s+(.*)$/);
+    if (h) {
+      flushPara(); closeList();
+      const lv = Math.min(h[1].length + 1, 5);
+      out.push(`<div class="nh${lv}">${mdInline(h[2])}</div>`);
+      i++; continue;
+    }
+    if (/^\s*([-*+])\s+/.test(ln)) {
+      flushPara();
+      if (list !== 'ul') { closeList(); out.push('<ul class="nul">'); list = 'ul'; }
+      out.push('<li>' + mdInline(ln.replace(/^\s*([-*+])\s+/, '')) + '</li>'); i++; continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(ln)) {
+      flushPara();
+      if (list !== 'ol') { closeList(); out.push('<ol class="nol">'); list = 'ol'; }
+      out.push('<li>' + mdInline(ln.replace(/^\s*\d+[.)]\s+/, '')) + '</li>'); i++; continue;
+    }
+    if (/^\s*>\s?/.test(ln)) {
+      flushPara(); closeList();
+      const buf = [];
+      while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+        buf.push(lines[i].replace(/^\s*>\s?/, '')); i++;
+      }
+      out.push('<blockquote class="nq">' + buf.map(mdInline).join('<br>') + '</blockquote>');
+      continue;
+    }
+    if (/^\s*(---+|\*\*\*+)\s*$/.test(ln)) { flushPara(); closeList(); out.push('<hr class="nhr">'); i++; continue; }
+    if (!ln.trim()) { flushPara(); closeList(); i++; continue; }
+    para.push(ln); i++;
+  }
+  flushPara(); closeList();
+  return out.join('\n') || '<p class="nph">左边写点什么，这里会实时预览。</p>';
+}
+
+function insertRef(id) {
+  const ta = $('#noteBody');
+  const token = `[[${id}]]`;
+  if (document.activeElement === ta) {
+    const s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? s;
+    ta.value = ta.value.slice(0, s) + token + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + token.length;
+  } else {
+    const v = ta.value.replace(/\s+$/, '');
+    ta.value = v + (v ? '\n\n' : '') + token + '\n';
+  }
+  onNoteInput();
+}
+
+let pickerItems = [];
+async function openCasePicker() {
+  if (!state.note) { toast('先选一篇总结', 'err'); return; }
+  try {
+    const j = await api('/api/vault');
+    pickerItems = j.items || [];
+  } catch (e) { toast('读取经验库失败：' + e.message, 'err'); return; }
+  if (!pickerItems.length) { toast('经验库还是空的，先去收录几轮', 'err'); return; }
+  $('#mTitle').textContent = '插入案例';
+  $('#mBody').innerHTML = `
+    <div class="search" style="max-width:none;margin-bottom:12px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="cpQ" placeholder="搜索案例：标题 / 提示词 / 工作流 / 种子…" />
+    </div>
+    <div class="cpick" id="cpGrid"></div>`;
+  $('#mFoot').innerHTML = `<span class="cpHint" id="cpHint">点一下插入到光标处，可连续插多个</span>
+    <button class="btn primary" id="cpDone">完成</button>`;
+  $('#modal').classList.add('show');
+  renderPicker('');
+  $('#cpQ').oninput = (e) => renderPicker(e.target.value.trim());
+  $('#cpQ').focus();
+  $('#cpDone').onclick = () => { closeModal(); $('#noteBody').focus(); };
+  $('#cpGrid').onclick = (e) => {
+    const b = e.target.closest('[data-case]');
+    if (!b) return;
+    const it = pickerItems.find(x => x.id == b.dataset.case);
+    if (it) state.cases[String(it.id)] = caseLite(it);   // 立刻能在预览里渲染成卡片
+    insertRef(+b.dataset.case);
+    b.classList.add('picked');
+    $('#cpHint').textContent = `已插入案例 #${b.dataset.case}，可继续点`;
+  };
+}
+
+function renderPicker(q) {
+  const low = (q || '').toLowerCase();
+  const list = pickerItems.filter(it => !low
+    || (it.title || '').toLowerCase().includes(low)
+    || (it.prompt_text || '').toLowerCase().includes(low)
+    || (it.flow || '').toLowerCase().includes(low)
+    || String(it.seed || '').includes(low));
+  const grid = $('#cpGrid');
+  if (!list.length) { grid.innerHTML = '<div class="empty" style="padding:26px 10px">没有匹配的案例</div>'; return; }
+  grid.innerHTML = list.map(it => {
+    const img = it.cover_url || (it.media_kind === 'video' ? '' : it.media_url);
+    const th = img ? `<img src="${img}" loading="lazy" alt="" />`
+      : (it.media_kind === 'video'
+          ? '<div class="cph video" style="width:100%;height:100%">▶</div>'
+          : '<div class="cph" style="width:100%;height:100%"></div>');
+    return `<button class="cpickItem" data-case="${it.id}">
+      <div class="th">${th}</div>
+      <div class="tx"><div class="t1">${esc(it.title || '(未命名)')}</div>
+        <div class="t2">${esc(it.flow || '')}</div></div></button>`;
+  }).join('');
+}
+
+function askConfirm(title, text, okText, onOk) {
+  $('#mTitle').textContent = title;
+  $('#mBody').innerHTML = `<p style="margin:0;font-size:13.5px;line-height:1.75">${esc(text)}</p>`;
+  $('#mFoot').innerHTML = `<button class="btn" id="cfNo">取消</button>
+    <button class="btn danger" id="cfYes">${esc(okText)}</button>`;
+  $('#modal').classList.add('show');
+  $('#cfNo').onclick = closeModal;
+  $('#cfYes').onclick = () => { closeModal(); onOk(); };
+}
+
+async function deleteNote() {
+  if (!state.note) return;
+  askConfirm('删除这篇总结', '「' + (state.note.title || '未命名总结') +
+    '」会移到 notes/_trash，不会立刻真删。', '确认删除', async () => {
+    try {
+      await api('/api/note/' + state.note.id, { method: 'DELETE' });
+      state.note = null; state.cases = {}; state.noteDirty = false;
+      clearTimeout(state.noteTimer);
+      $('#noteTitle').value = ''; $('#noteBody').value = ''; $('#notePreview').innerHTML = '';
+      $('.notes').classList.add('no-sel');
+      noteState('');
+      await loadNotes(true);
+      toast('已删除（在 notes/_trash）', 'ok');
+    } catch (e) { toast('删除失败：' + e.message, 'err'); }
+  });
+}
+
+async function exportNote() {
+  if (!state.note) return;
+  if (state.noteDirty) await saveNote(true);
+  try {
+    const r = await fetch('/api/note/' + state.note.id + '?format=md');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const text = await r.text();
+    const name = (state.note.title || ('总结' + state.note.id)).replace(/[\\/:*?"<>|]/g, '_');
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = name + '.md';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast('已导出 .md', 'ok');
+  } catch (e) { toast('导出失败：' + e.message, 'err'); }
+}
+
+/* 从案例详情反向加进某篇总结 */
+function openAddToNote(itemId) {
+  const it = state.items.find(x => x.id == itemId) || state.current || {};
+  const rows = (state.notes || []).map(n => `<button class="cpickItem" data-addnote="${n.id}" style="width:100%">
+      <div class="tx"><div class="t1">${esc(n.title || '未命名总结')}</div>
+      <div class="t2">已有 ${n.refs.length} 个案例</div></div></button>`).join('');
+  $('#mTitle').textContent = '加入一篇总结';
+  $('#mBody').innerHTML = `<p class="mutedsm" style="margin:0 0 10px">把「${esc(it.title || '这条案例')}」作为例子追加到哪篇总结？</p>
+    <div id="anList" style="display:flex;flex-direction:column;gap:6px;max-height:44vh;overflow:auto">
+      ${rows || '<div class="mutedsm">还没有总结，点下面新建一篇。</div>'}</div>`;
+  $('#mFoot').innerHTML = `<button class="btn" data-addnote="new">新建一篇并加入</button>
+    <button class="btn primary" id="anCancel">取消</button>`;
+  $('#modal').classList.add('show');
+  $('#anCancel').onclick = closeModal;
+  $('#anList').onclick = (e) => {
+    const b = e.target.closest('[data-addnote]');
+    if (b) appendCaseToNote(+b.dataset.addnote, itemId);
+  };
+  $('#mFoot').querySelector('[data-addnote="new"]').onclick = () => appendCaseToNote(null, itemId);
+}
+
+async function appendCaseToNote(nid, itemId) {
+  try {
+    let id = nid, title = '';
+    if (!id) {
+      const it = state.items.find(x => x.id == itemId) || state.current || {};
+      title = it.title || '';
+      const j = await api('/api/notes', { method: 'POST', body: JSON.stringify({ title }) });
+      id = j.note.id;
+    }
+    const jj = await api('/api/note/' + id);
+    const n = jj.note;
+    title = n.title || title;
+    const content = String(n.content || '').replace(/\s+$/, '');
+    if (new RegExp('\\[\\[\\s*' + itemId + '\\s*(\\||\\]\\])').test(content)) {
+      closeModal();
+      toast('《' + (n.title || '这篇总结') + '》里已经有这个案例了');
+      return;
+    }
+    await api('/api/note/' + id, {
+      method: 'PUT',
+      body: JSON.stringify({ title: n.title, content: content + (content ? '\n\n' : '') + `[[${itemId}]]\n` }),
+    });
+    closeModal();
+    await loadNotes(true);
+    toast('已加入《' + (title || '未命名总结') + '》', 'ok');
+    if (state.tab === 'notes') await openNote(id);
+  } catch (e) { toast('加入失败：' + e.message, 'err'); }
+}
+
+/* ---------------- 事件 ---------------- */
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+
+  if (act === 'keep') return keepRun(t.dataset.pid);
+  if (act === 'keep-note') return openKeepDialog(t.dataset.pid);
+  if (act === 'prompt') return showPrompt(t.dataset.pid);
+  if (act === 'lightbox') return showLightbox(t.dataset.pid);
+  if (act === 'open-kept') {
+    const r = state.runs.find(x => x.prompt_id === t.dataset.pid);
+    if (r && r.kept) {
+      const it = state.items.find(x => x.prompt_id === t.dataset.pid);
+      if (it) return openDetail(it.id);
+      await loadVault();
+      const found = state.items.find(x => x.prompt_id === t.dataset.pid);
+      if (found) return openDetail(found.id);
+    }
+    return switchTab('vault');
+  }
+  if (act === 'detail') return openDetail(t.dataset.id);
+  if (act === 'case-open') return openDetail(t.dataset.id);
+  if (act === 'note-add') return openAddToNote(t.dataset.id);
+  if (act === 'open-note') {
+    const nid = +t.dataset.nid;
+    closeDrawer();
+    switchTab('notes');
+    return openNote(nid);
+  }
+  if (act === 'copy') {
+    const it = state.items.find(x => x.id == t.dataset.id);
+    if (it) copyText(paramsText(it), '参数已复制');
+    return;
+  }
+  if (act === 'copy-prompt') {
+    const it = state.current;
+    if (it) copyText(it.prompt_text || '', '提示词已复制');
+    return;
+  }
+  if (act === 'save-meta') {
+    const id = t.dataset.id;
+    try {
+      const j = await api('/api/item/' + id, { method: 'PATCH', body: JSON.stringify({
+        title: $('#eTitle').value.trim(), tags: $('#eTags').value, note: $('#eNote').value.trim() }) });
+      const it = j.item;
+      const idx = state.items.findIndex(x => x.id == it.id);
+      if (idx >= 0) state.items[idx] = it;
+      state.current = it;
+      renderVault();
+      $('#dTitle').textContent = it.title || '(未命名)';
+      toast('已保存', 'ok');
+    } catch (err) { toast('保存失败：' + err.message, 'err'); }
+    return;
+  }
+  if (act === 'del') {
+    const id = t.dataset.id;
+    if (!confirm('确认从经验库移出这一条？（文件会被移到 vault/_trash，不会立刻删除）')) return;
+    try {
+      await api('/api/item/' + id, { method: 'DELETE' });
+      state.items = state.items.filter(x => x.id != id);
+      closeDrawer(); renderVault(); loadStatus();
+      toast('已移出（文件在 _trash）', 'ok');
+    } catch (err) { toast('删除失败：' + err.message, 'err'); }
+    return;
+  }
+  if (act === 'lightbox-img') {
+    $('#lbBox').innerHTML = `<img src="${t.dataset.src}" alt="" />`;
+    $('#lightbox').classList.add('show');
+  }
+});
+
+$('#scrim').onclick = () => { closeDrawer(); };
+$('#mClose').onclick = closeModal;
+$('#modal').onclick = (e) => { if (e.target.id === 'modal') closeModal(); };
+$('#lightbox').onclick = (e) => { if (e.target.id === 'lightbox' || e.target.closest('.box')) closeLightbox(); };
+$('#dClose').onclick = closeDrawer;
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    if (state.tab === 'notes' && state.note) { e.preventDefault(); saveNote(); }
+    return;
+  }
+  if (e.key === 'Escape') { closeModal(); closeLightbox(); closeDrawer(); }
+});
+window.addEventListener('beforeunload', (e) => {
+  if (state.noteDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* 总结页控件 */
+$('#newNote').onclick = newNote;
+$('#insertCase').onclick = openCasePicker;
+$('#exportNote').onclick = exportNote;
+$('#deleteNote').onclick = deleteNote;
+$('#noteTitle').oninput = onNoteInput;
+$('#noteBody').oninput = onNoteInput;
+$('#noteList').onclick = (e) => {
+  const b = e.target.closest('[data-nid]');
+  if (b) openNote(+b.dataset.nid);
+};
+$('#nSearch').oninput = (e) => {
+  state.notesQ = e.target.value.trim();
+  clearTimeout(window._nt);
+  window._nt = setTimeout(() => loadNotes(), 250);
+};
+$('#noteTitle').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('#noteBody').focus(); }
+});
+
+$$('.tab').forEach(tab => tab.onclick = () => switchTab(tab.dataset.tab));
+function switchTab(name) {
+  if (state.tab === 'notes' && name !== 'notes' && state.noteDirty) saveNote(true);
+  state.tab = name;
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  $('#viewPending').style.display = name === 'pending' ? '' : 'none';
+  $('#viewVault').style.display = name === 'vault' ? '' : 'none';
+  $('#viewNotes').style.display = name === 'notes' ? '' : 'none';
+  if (name === 'vault') loadVault();
+  if (name === 'notes') loadNotes();
+}
+
+$('#refreshBtn').onclick = async () => {
+  $('#refreshBtn').disabled = true;
+  await loadStatus();
+  if (state.tab === 'pending') await loadPending();
+  else if (state.tab === 'vault') await loadVault();
+  else { if (state.noteDirty) await saveNote(true); await loadNotes(); }
+  $('#refreshBtn').disabled = false;
+  toast('已刷新');
+};
+$('#pFilter').oninput = (e) => { state.filter = e.target.value.trim(); renderPending(); };
+$('#onlySuccess').onclick = (e) => {
+  state.onlySuccess = !state.onlySuccess;
+  e.target.classList.toggle('primary', state.onlySuccess);
+  e.target.textContent = state.onlySuccess ? '只看成功的 ✓' : '只看成功的';
+  renderPending();
+};
+$('#vSearch').oninput = (e) => {
+  state.vq = e.target.value.trim();
+  clearTimeout(window._vt);
+  window._vt = setTimeout(() => loadVault(), 260);
+};
+$('#tagRow').onclick = (e) => {
+  const b = e.target.closest('[data-tag]');
+  if (!b) return;
+  state.vtag = b.dataset.tag;
+  loadVault();
+};
+$('#flowRow').onclick = (e) => {
+  const b = e.target.closest('[data-flow]');
+  if (!b) return;
+  state.pflow = b.dataset.flow;
+  renderPending();
+};
+$('#vFlowRow').onclick = (e) => {
+  const b = e.target.closest('[data-vflow]');
+  if (!b) return;
+  state.vflow = b.dataset.vflow;
+  loadVault();
+};
+
+/* 自动刷新：只在待筛选页、没有弹窗、页面可见时 */
+setInterval(() => {
+  if (state.tab !== 'pending') return;
+  if (document.hidden) return;
+  if ($('#modal').classList.contains('show') || $('#drawer').classList.contains('show')) return;
+  loadPending(true);
+}, 6000);
+
+(async function init() {
+  await loadStatus();
+  await loadPending();
+  loadVault(true);
+  loadNotes(true);
+})();
+</script>
+</body>
+</html>
