@@ -121,6 +121,9 @@ VAULT_DIR = Path(CFG["vault_dir"])
 VAULT_DIR.mkdir(parents=True, exist_ok=True)
 NOTES_DIR = Path(CFG["notes_dir"])
 NOTES_DIR.mkdir(parents=True, exist_ok=True)
+# 总结正文里粘贴的图片，按内容哈希存这里，正文只留 /na/<文件名> 引用
+ASSETS_DIR = NOTES_DIR / "assets"
+ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 (ROOT / "data").mkdir(parents=True, exist_ok=True)
 
 
@@ -1058,6 +1061,41 @@ def save_note(note: dict) -> dict:
     return note
 
 
+# --------------------------------------------------------------------------
+# 总结正文里的图片
+#   粘贴进来的截图先落到 notes/assets/，正文里只写 ![](/na/<文件> "w=420")。
+#   这样正文仍然是纯文本（可搜索、可导出），图片又不会塞进 JSON 把文件撑大。
+# --------------------------------------------------------------------------
+NOTE_IMG_EXT = {
+    "image/png": ".png", "image/jpeg": ".jpg", "image/jpg": ".jpg",
+    "image/webp": ".webp", "image/gif": ".gif", "image/bmp": ".bmp",
+}
+NOTE_IMG_MAX = 24 * 1024 * 1024          # 单张 24MB 上限
+
+
+def save_note_asset(data: bytes, ctype: str) -> dict:
+    """按内容哈希落盘，同一张图重复粘贴不会存两份。"""
+    ext = NOTE_IMG_EXT.get((ctype or "").split(";")[0].strip().lower(), ".png")
+    name = hashlib.sha1(data).hexdigest()[:16] + ext
+    path = ASSETS_DIR / name
+    if not path.exists():
+        path.write_bytes(data)
+    w, h = image_size(str(path))
+    return {"ok": True, "url": f"/na/{name}", "file": name,
+            "width": w, "height": h, "bytes": len(data)}
+
+
+def note_asset_path(name: str) -> Path | None:
+    """只允许 assets 目录下的单层文件名，挡住路径穿越。"""
+    name = urllib.parse.unquote(name or "").strip()
+    if not name or "/" in name or "\\" in name or name.startswith("."):
+        return None
+    target = (ASSETS_DIR / name).resolve()
+    if target.parent != ASSETS_DIR.resolve() or not target.is_file():
+        return None
+    return target
+
+
 def next_note_id() -> int:
     ids = []
     for p in _note_files():
@@ -1120,6 +1158,8 @@ def note_as_markdown(n: dict, items: dict[int, dict]) -> str:
             head += f"\n\n> {it['prompt_text'][:400]}"
         return head
     body = REF_IN_TEXT.sub(repl, n.get("content") or "")
+    # 正文里的图片是 /na/<文件名>，导出后改成相对路径，放到 notes/ 同级就能看到图
+    body = re.sub(r"\]\(/na/([^)\s\"]+)", r"](assets/\1", body)
     title = n.get("title") or f"经验总结 {n['id']}"
     return f"# {title}\n\n_更新于 {n.get('updated_at') or '-'}_\n\n{body}\n"
 
@@ -1210,6 +1250,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.proxy_view(qs)
             if path.startswith("/f/"):
                 return self.serve_vault_file(path)
+            if path.startswith("/na/"):
+                return self.serve_note_asset(path)
             return self.serve_static(path)
         except Exception as exc:
             traceback.print_exc()
@@ -1218,6 +1260,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             path = urllib.parse.urlparse(self.path).path
+            # 图片上传是原始字节流，必须在按 JSON 解析 body 之前拦下来
+            if path == "/api/note-asset":
+                return self.api_note_asset()
             body = self._body()
             if path == "/api/keep":
                 pid = (body.get("prompt_id") or "").strip()
@@ -1394,6 +1439,29 @@ class Handler(BaseHTTPRequestHandler):
         self._json({"ok": True, "comfy": True, "runs": runs,
                     "flows": sorted(flows.values(), key=lambda x: -x["count"]),
                     "pending": sum(1 for r in runs if not r["kept"] and r["status"] == "success")})
+
+    def api_note_asset(self):
+        """粘贴图片时前端直接 POST 原始字节，这里存盘并回尺寸。"""
+        ctype = (self.headers.get("Content-Type") or "").lower()
+        if not ctype.startswith("image/"):
+            return self._err("只接受图片")
+        n = int(self.headers.get("Content-Length") or 0)
+        if n <= 0:
+            return self._err("空文件")
+        if n > NOTE_IMG_MAX:
+            return self._err(f"图片太大（上限 {NOTE_IMG_MAX // 1024 // 1024}MB）")
+        data = self.rfile.read(n)
+        if not data:
+            return self._err("空文件")
+        return self._json(save_note_asset(data, ctype))
+
+    def serve_note_asset(self, path: str):
+        name = path.split("/na/", 1)[-1]
+        target = note_asset_path(name)
+        if not target:
+            return self._err("图片不存在", 404)
+        ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        self._send(200, target.read_bytes(), ctype)
 
     def api_notes(self, qs):
         q = (qs.get("q") or [""])[0]

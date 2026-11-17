@@ -202,9 +202,23 @@
   .panehead{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:650;
     padding:7px 16px;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
   .panehead .kbd{text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;color:#9aa0ae;text-align:right;flex:1}
-  .neditor textarea{flex:1;border:none;outline:none;resize:none;padding:15px 17px;min-height:430px;
-    font-size:13.5px;line-height:1.8;background:#fdfdff;color:#252a34;
+  .neditor .nbody{position:relative;flex:1;overflow:auto;outline:none;padding:15px 17px;min-height:430px;
+    font-size:13.5px;line-height:1.8;background:#fdfdff;color:#252a34;word-break:break-word;
     font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Microsoft YaHei",monospace}
+  .neditor .nbody.empty::before{content:attr(data-ph);color:#b8bdc9;position:absolute;pointer-events:none;
+    white-space:pre-wrap}
+  .neditor .nbody .imgl{margin:8px 0}
+  .imgbox{position:relative;display:inline-block;max-width:100%;line-height:0}
+  .imgbox img{display:block;max-width:100%;border-radius:8px;border:1px solid var(--line);background:#fff}
+  .imgbox .grip{position:absolute;right:-7px;bottom:-7px;width:15px;height:15px;border-radius:5px;
+    background:#fff;border:2px solid var(--accent);cursor:nwse-resize;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+  .imgbox .delx{position:absolute;right:-8px;top:-8px;width:19px;height:19px;border-radius:50%;
+    background:#fff;border:1px solid #dcdfe8;color:#8b91a1;font:600 13px/17px system-ui;text-align:center;
+    cursor:pointer;opacity:0;transition:opacity .12s ease}
+  .imgbox:hover .delx{opacity:1}
+  .imgbox .delx:hover{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
+  .imgl .upwait{display:inline-block;padding:8px 12px;border:1px dashed var(--line);border-radius:8px;
+    color:var(--muted);font-size:12px;background:#fafbff}
   .npreview{padding:15px 20px 26px;overflow:auto;max-height:70vh}
   .npreview p{margin:0 0 10px}
   .npreview .nh2{font-size:17px;font-weight:650;margin:16px 0 8px;line-height:1.4}
@@ -224,6 +238,8 @@
   .npreview a.caseref{color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;
     padding:1px 6px;font-weight:600;text-decoration:none;font-size:12.5px}
   .npreview a.caseref:hover{background:#e2e5ff}
+  .npreview .nimgp{margin:0 0 12px}
+  .npreview .nimg{display:block;max-width:100%;border-radius:8px;border:1px solid var(--line)}
 
   .case{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;
     padding:9px;margin:0 0 12px;background:#fbfbfe;cursor:pointer;transition:.14s}
@@ -391,13 +407,14 @@
         </div>
         <div class="npanes" id="notePanes">
           <div class="neditor">
-            <div class="panehead">编辑<span class="kbd">支持 # 标题 / - 列表 / **加粗** / [[案例]]</span></div>
-            <textarea id="noteBody" placeholder="怎么写都行。例如：
+            <div class="panehead">编辑<span class="kbd">支持 # 标题 / - 列表 / **加粗** / [[案例]] / 直接粘贴截图</span></div>
+            <div class="nbody empty" id="noteBody" contenteditable="true" spellcheck="false"
+                 data-ph="怎么写都行。例如：
 
 ## 打光
 侧逆光 + 低补光最稳，8 步就够，再多只会让皮肤发灰。
 
-## 典型例子"></textarea>
+截图直接 Ctrl+V 粘进来，拖右下角可以缩放。"></div>
           </div>
           <div class="npreview" id="notePreview"></div>
         </div>
@@ -904,9 +921,11 @@ async function openNote(nid) {
     state.note = j.note;
     state.cases = j.cases || {};
     state.noteDirty = false;
+    state.noteRev = 0;
+    state.noteSaving = false;
     clearTimeout(state.noteTimer);
     $('#noteTitle').value = j.note.title || '';
-    $('#noteBody').value = j.note.content || '';
+    setEditorText(j.note.content || '');
     $('.notes').classList.remove('no-sel');
     renderPreview();
     noteState('已保存 ' + String(j.note.updated_at || '').slice(11, 16));
@@ -928,15 +947,26 @@ async function newNote() {
 async function saveNote(silent) {
   if (!state.note) return;
   if (!state.noteDirty) { return; }
+  // 上一次请求还没回来：不并发提交，等它结束时按修订号决定要不要补存
+  if (state.noteSaving) { return; }
   const id = state.note.id;
-  const payload = { title: $('#noteTitle').value.trim(), content: $('#noteBody').value };
+  const rev = state.noteRev | 0;
+  const payload = { title: $('#noteTitle').value.trim(), content: editorText() };
+  state.noteSaving = true;
+  state.noteDirty = false;
   noteState('保存中…', true);
   try {
     const j = await api('/api/note/' + id, { method: 'PUT', body: JSON.stringify(payload) });
     if (state.note && state.note.id === id) {
       state.note = j.note;
-      state.noteDirty = false;
-      noteState('已保存 ' + String(j.note.updated_at || '').slice(11, 16));
+      if ((state.noteRev | 0) !== rev) {
+        // 保存期间又改了：把 dirty 还原，稍后补一次，别把新改动丢掉
+        state.noteDirty = true;
+        clearTimeout(state.noteTimer);
+        state.noteTimer = setTimeout(() => saveNote(true), 350);
+      } else {
+        noteState('已保存 ' + String(j.note.updated_at || '').slice(11, 16));
+      }
       // 手写 [[id]] 时前端还不知道这条案例，补一次案例数据，卡片才渲染得出来
       const missing = (j.note.refs || []).filter(r => !(state.cases || {})[String(r)]);
       if (missing.length) {
@@ -950,13 +980,17 @@ async function saveNote(silent) {
     loadNotes(true);
     if (!silent) toast('已保存', 'ok');
   } catch (e) {
+    state.noteDirty = true;
     noteState('保存失败', true);
     toast('保存失败：' + e.message, 'err');
+  } finally {
+    state.noteSaving = false;
   }
 }
 
 function onNoteInput() {
   if (!state.note) return;
+  state.noteRev = (state.noteRev | 0) + 1;   // 修订号：保存回来时用它判断期间有没有新改动
   state.noteDirty = true;
   noteState('编辑中…', true);
   renderPreview();
@@ -966,7 +1000,7 @@ function onNoteInput() {
 
 function renderPreview() {
   const el = $('#notePreview');
-  if (el) el.innerHTML = mdToHtml($('#noteBody').value, state.cases);
+  if (el) el.innerHTML = mdToHtml(editorText(), state.cases);
 }
 
 /* 极简 markdown 渲染：只做笔记真正会用到的那些语法 */
@@ -1024,6 +1058,13 @@ function mdToHtml(src, cases) {
     }
     const only = ln.trim().match(/^\[\[(\d+)(?:\|([^\]]*))?\]\]$/);
     if (only) { flushPara(); closeList(); out.push(caseCard(+only[1], only[2], cases)); i++; continue; }
+    const im = ln.trim().match(IMG_LINE);
+    if (im) {
+      flushPara(); closeList();
+      const w = im[3] ? ` style="width:${im[3]}px"` : '';
+      out.push(`<p class="nimgp"><img class="nimg" src="${esc(im[2])}" alt="${esc(im[1] || '')}"${w} loading="lazy"></p>`);
+      i++; continue;
+    }
     const h = ln.match(/^(#{1,4})\s+(.*)$/);
     if (h) {
       flushPara(); closeList();
@@ -1058,17 +1099,259 @@ function mdToHtml(src, cases) {
   return out.join('\n') || '<p class="nph">左边写点什么，这里会实时预览。</p>';
 }
 
-function insertRef(id) {
-  const ta = $('#noteBody');
-  const token = `[[${id}]]`;
-  if (document.activeElement === ta) {
-    const s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? s;
-    ta.value = ta.value.slice(0, s) + token + ta.value.slice(e);
-    ta.selectionStart = ta.selectionEnd = s + token.length;
-  } else {
-    const v = ta.value.replace(/\s+$/, '');
-    ta.value = v + (v ? '\n\n' : '') + token + '\n';
+/* ------------------------------------------------------------------
+   编辑区：正文仍按 markdown 文本存（可搜索、可导出），
+   但图片是真实 <img> 内嵌在光标位置，右下角拖动可改显示宽度，
+   宽度记在 ![alt](src "w=420") 里，下次打开还是这个大小。
+------------------------------------------------------------------ */
+const IMG_LINE = /^!\[([^\]]*)\]\((\S+?)(?:\s+"w=(\d+)")?\)$/;
+
+function editorEl() { return $('#noteBody'); }
+
+function imgToken(box) {
+  if (!box) return '';
+  const img = box.querySelector('img');
+  const src = img ? img.getAttribute('src') : '';
+  if (!src) return '';
+  const alt = box.dataset.alt || '';
+  return box.dataset.w ? `![${alt}](${src} "w=${box.dataset.w}")` : `![${alt}](${src})`;
+}
+
+function nodeLineText(node) {
+  let s = '';
+  node.childNodes.forEach(n => {
+    if (n.nodeType === 3) s += n.textContent;
+    else if (n.nodeName === 'BR') s += '\n';
+    else if (n.nodeType === 1) {
+      if (n.classList.contains('imgbox')) s += imgToken(n);
+      else s += nodeLineText(n);
+    }
+  });
+  return s;
+}
+
+function editorText() {
+  const ed = editorEl();
+  if (!ed) return '';
+  const lines = [];
+  ed.childNodes.forEach(node => {
+    if (node.nodeType === 3) { lines.push(node.textContent); return; }
+    if (node.nodeName === 'BR') { lines.push(''); return; }
+    if (node.nodeType !== 1) return;
+    if (node.classList.contains('imgl')) { lines.push(imgToken(node.querySelector('.imgbox'))); return; }
+    lines.push(nodeLineText(node));
+  });
+  return lines.join('\n').replace(/\u00a0/g, ' ')
+    .replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').replace(/\s+$/, '');
+}
+
+function imageBlock(src, w, alt) {
+  const wrap = document.createElement('div');
+  wrap.className = 'imgl';
+  const box = document.createElement('span');
+  box.className = 'imgbox';
+  box.contentEditable = 'false';
+  if (alt) box.dataset.alt = alt;
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = alt || '';
+  img.draggable = false;
+  if (w) { img.style.width = parseInt(w, 10) + 'px'; box.dataset.w = String(parseInt(w, 10)); }
+  const grip = document.createElement('i');
+  grip.className = 'grip';
+  grip.title = '拖动调整显示大小（双击图片恢复原始尺寸）';
+  const delx = document.createElement('b');
+  delx.className = 'delx';
+  delx.textContent = '×';
+  delx.title = '删除这张图';
+  box.appendChild(img);
+  box.appendChild(grip);
+  box.appendChild(delx);
+  wrap.appendChild(box);
+  return wrap;
+}
+
+function setEditorText(text) {
+  const ed = editorEl();
+  if (!ed) return;
+  ed.innerHTML = '';
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  lines.forEach(ln => {
+    const m = ln.trim().match(IMG_LINE);
+    if (m) { ed.appendChild(imageBlock(m[2], m[3], m[1])); return; }
+    const d = document.createElement('div');
+    if (ln) d.textContent = ln;
+    else d.appendChild(document.createElement('br'));
+    ed.appendChild(d);
+  });
+  if (!ed.childNodes.length) {
+    const d = document.createElement('div');
+    d.appendChild(document.createElement('br'));
+    ed.appendChild(d);
   }
+  syncEmpty();
+}
+
+function syncEmpty() {
+  const ed = editorEl();
+  if (!ed) return;
+  const hasText = (ed.textContent || '').trim().length > 0 || !!ed.querySelector('.imgbox');
+  ed.classList.toggle('empty', !hasText);
+}
+
+function caretBlock() {
+  const ed = editorEl();
+  const sel = window.getSelection();
+  if (!ed || !sel || !sel.rangeCount) return null;
+  let n = sel.getRangeAt(0).startContainer;
+  if (!ed.contains(n)) return null;
+  while (n && n.parentNode !== ed) n = n.parentNode;
+  return (n && n.nodeType === 1) ? n : null;
+}
+
+function placeCaretIn(el) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  r.collapse(true);
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+/* 把整块（图片）插到光标所在行之后，并保证后面留一个可继续输入的空行 */
+function insertBlockAtCaret(node) {
+  const ed = editorEl();
+  const blk = caretBlock();
+  if (!blk) ed.appendChild(node);
+  else if (!blk.textContent.trim() && !blk.querySelector('img')) blk.replaceWith(node);
+  else blk.after(node);
+  let next = node.nextElementSibling;
+  if (!next || !/^(DIV|P)$/.test(next.nodeName)) {
+    next = document.createElement('div');
+    next.appendChild(document.createElement('br'));
+    node.after(next);
+  }
+  placeCaretIn(next);
+}
+
+async function insertImageFile(file) {
+  const ed = editorEl();
+  if (!ed) return;
+  ed.focus();
+  const holder = document.createElement('div');
+  holder.className = 'imgl';
+  holder.innerHTML = '<span class="upwait">图片上传中…</span>';
+  insertBlockAtCaret(holder);
+  syncEmpty();
+  try {
+    const res = await fetch('/api/note-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'image/png' },
+      body: file,
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.ok) throw new Error(j.error || ('HTTP ' + res.status));
+    const maxW = Math.max(160, ed.clientWidth - 40);
+    const natW = Number(j.width) || 0;
+    const showW = natW ? Math.min(natW, maxW) : Math.min(420, maxW);
+    holder.replaceWith(imageBlock(j.url, Math.round(showW), ''));
+  } catch (err) {
+    holder.remove();
+    toast('图片插入失败：' + err.message, 'err');
+  }
+  syncEmpty();
+  onNoteInput();
+}
+
+function editorPaste(e) {
+  const dt = e.clipboardData;
+  if (!dt) return;
+  const items = Array.from(dt.items || []);
+  const imgItem = items.find(it => it.kind === 'file' && /^image\//i.test(it.type));
+  const file = imgItem ? imgItem.getAsFile() : null;
+  if (file) {
+    e.preventDefault();
+    insertImageFile(file);
+    return;
+  }
+  // 从别处复制来的内容会带一堆样式标记，这里只保留纯文本
+  const text = dt.getData('text/plain');
+  if (text) {
+    e.preventDefault();
+    document.execCommand('insertText', false, text);
+    syncEmpty();
+    onNoteInput();
+  }
+}
+
+function editorMouseDown(e) {
+  const grip = e.target.closest && e.target.closest('.grip');
+  if (!grip) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const box = grip.parentElement;
+  const img = box.querySelector('img');
+  if (!img) return;
+  const host = box.closest('.imgl') || box;
+  const maxW = Math.max(120, (host.parentElement ? host.parentElement.clientWidth : 800) - 34);
+  const startX = e.clientX;
+  const startW = img.getBoundingClientRect().width;
+  document.body.style.cursor = 'nwse-resize';
+  const move = ev => {
+    const w = Math.round(Math.max(80, Math.min(maxW, startW + ev.clientX - startX)));
+    img.style.width = w + 'px';
+    box.dataset.w = String(w);
+  };
+  const up = () => {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+    document.body.style.cursor = '';
+    onNoteInput();
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
+function editorDblClick(e) {
+  const img = e.target.closest && e.target.closest('.imgbox img');
+  if (!img) return;
+  e.preventDefault();
+  const box = img.parentElement;
+  img.style.width = '';
+  delete box.dataset.w;
+  onNoteInput();
+}
+
+function editorClick(e) {
+  const del = e.target.closest && e.target.closest('.delx');
+  if (!del) return;
+  e.preventDefault();
+  const wrap = del.closest('.imgl');
+  if (wrap) wrap.remove();
+  syncEmpty();
+  onNoteInput();
+}
+
+function insertRef(id) {
+  const ed = editorEl();
+  if (!ed) return;
+  const token = `[[${id}]]`;
+  ed.focus();
+  const sel = window.getSelection();
+  const inEditor = sel && sel.rangeCount && ed.contains(sel.getRangeAt(0).startContainer);
+  if (inEditor) {
+    document.execCommand('insertText', false, token);
+  } else {
+    const d = document.createElement('div');
+    d.textContent = token;
+    ed.appendChild(d);
+    const r = document.createRange();
+    r.selectNodeContents(d);
+    r.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+  syncEmpty();
   onNoteInput();
 }
 
@@ -1145,7 +1428,7 @@ async function deleteNote() {
       await api('/api/note/' + state.note.id, { method: 'DELETE' });
       state.note = null; state.cases = {}; state.noteDirty = false;
       clearTimeout(state.noteTimer);
-      $('#noteTitle').value = ''; $('#noteBody').value = ''; $('#notePreview').innerHTML = '';
+      $('#noteTitle').value = ''; setEditorText(''); $('#notePreview').innerHTML = '';
       $('.notes').classList.add('no-sel');
       noteState('');
       await loadNotes(true);
@@ -1315,7 +1598,20 @@ $('#insertCase').onclick = openCasePicker;
 $('#exportNote').onclick = exportNote;
 $('#deleteNote').onclick = deleteNote;
 $('#noteTitle').oninput = onNoteInput;
-$('#noteBody').oninput = onNoteInput;
+{
+  const ed = $('#noteBody');
+  ed.addEventListener('input', () => { syncEmpty(); onNoteInput(); });
+  ed.addEventListener('paste', editorPaste);
+  ed.addEventListener('mousedown', editorMouseDown);
+  ed.addEventListener('dblclick', editorDblClick);
+  ed.addEventListener('click', editorClick);
+  ed.addEventListener('drop', (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f && /^image\//i.test(f.type)) { e.preventDefault(); insertImageFile(f); }
+  });
+  // 每段用 <div> 表示一行，序列化时才好还原成换行
+  try { document.execCommand('defaultParagraphSeparator', false, 'div'); } catch (e) { /* 忽略 */ }
+}
 $('#noteList').onclick = (e) => {
   const b = e.target.closest('[data-nid]');
   if (b) openNote(+b.dataset.nid);
@@ -1395,6 +1691,7 @@ setInterval(() => {
   loadVault(true);
   loadNotes(true);
 })();
+
 </script>
 </body>
 </html>
