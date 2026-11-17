@@ -51,7 +51,7 @@ ComfyUI 的执行历史里躺着几百轮结果，其中大多数是试错。把
 **前提**：ComfyUI 正在运行（默认 `http://127.0.0.1:8188`），且本机能直连、无需鉴权。
 
 ```bash
-git clone https://github.com/<your-name>/comfy-vault.git
+git clone https://github.com/RBLiang1/comfy-vault.git
 cd comfy-vault
 ```
 
