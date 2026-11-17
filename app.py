@@ -422,10 +422,15 @@ def resolve_literal(nodes: dict, val, depth: int = 0):
 
 NUMERIC_JUNK = re.compile(r"^[\s\d,.\-_xX*/+=%()]+$")
 
+# 有些工作流会把 None / null 当成字符串写进文本字段，这些不是提示词
+JUNK_LITERALS = {"none", "null", "undefined", "nil", "nan", "true", "false", "empty", "no prompt"}
+
 
 def _is_meaningful_text(text: str) -> bool:
-    """过滤掉纯数字、比例、随机种子这类假提示词。"""
+    """过滤掉纯数字、比例、随机种子、None 这类假提示词。"""
     if not text or len(text) < 4:
+        return False
+    if text.strip().lower() in JUNK_LITERALS:
         return False
     if NUMERIC_JUNK.match(text):
         return False
@@ -697,7 +702,10 @@ def guess_title(prompt_text: str) -> str:
         t = pick(line)
         if t:
             return t
-    return prompt_text.strip().replace("\n", " ")[:36]
+    fallback = prompt_text.strip().replace("\n", " ")
+    if fallback.lower() in JUNK_LITERALS:
+        return ""
+    return fallback[:36]
 
 
 def model_family(models: dict, class_names: set[str]) -> str:
@@ -1277,7 +1285,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(keep_run(runs[0]["prompt_id"], body.get("title", ""),
                                            body.get("tags", ""), body.get("note", "")))
             if path == "/api/reindex":
-                return self._json({"ok": True, "count": reindex()})
+                return self._json({"ok": True, **reindex()})
             if path == "/api/notes":
                 title = (body.get("title") or "").strip()
                 note = {"id": next_note_id(), "title": title,
@@ -1406,7 +1414,11 @@ class Handler(BaseHTTPRequestHandler):
     def api_pending(self, qs):
         limit = int((qs.get("limit") or [CFG["pending_limit"]])[0])
         try:
-            runs = fetch_history(limit)
+            # 空跑（点了运行但队列没真正产出）在 ComfyUI 历史里也算一条记录，
+            # 但它没有成品可收，混进待筛选只会变成一排「没有可预览的成品」占位卡。
+            # 多拉一些再过滤，保证过滤后仍够 limit 条。
+            runs = [r for r in fetch_history(max(limit * 2, limit + 20)) if r.get("media_url")]
+            runs = runs[:limit]
         except Exception as exc:
             return self._json({"ok": False, "comfy": False, "runs": [],
                                "error": f"连不上 ComfyUI ({CFG['comfy_url']}): {exc}"})
@@ -1636,10 +1648,16 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, target.read_bytes(), ctype)
 
 
-def reindex() -> int:
-    """按 vault 里的 meta.json 重建索引（DB 丢了也能恢复）。"""
-    n = 0
+def reindex() -> dict:
+    """按 vault 里的 meta.json 重建索引（DB 丢了也能恢复；目录删了也同步清掉）。"""
+    added = removed = 0
     with db() as conn:
+        # 先清孤儿记录：目录已被删掉，索引里不该还留着
+        alive = {p.parent.name for p in VAULT_DIR.glob("*/meta.json")}
+        for row in conn.execute("SELECT id, dir_name FROM items").fetchall():
+            if row["dir_name"] not in alive:
+                conn.execute("DELETE FROM items WHERE id=?", (row["id"],))
+                removed += 1
         for meta_path in sorted(VAULT_DIR.glob("*/meta.json")):
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -1665,8 +1683,8 @@ def reindex() -> int:
                  flow.get("id", ""), flow.get("name", ""), meta.get("media_file", ""),
                  meta.get("cover_file", ""), json.dumps(meta, ensure_ascii=False)),
             )
-            n += 1
-    return n
+            added += 1
+    return {"added": added, "removed": removed}
 
 
 def port_free(port: int) -> bool:
