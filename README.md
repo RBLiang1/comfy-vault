@@ -70,6 +70,27 @@ chmod +x start.sh
 > 端口 8791 被占用时改 `config.json` 里的 `port`。如果装了 ComfyUI 内的按钮，
 > 还要同步改 `comfyui-extension/h3_vault_button.js` 顶部的 `VAULT_BASE`。
 
+### 每天怎么用 / 开机自启
+
+经验库和 ComfyUI 是**两个独立进程**：
+
+- 打开 <http://127.0.0.1:8791> 只需要经验库服务在运行；看已收录的内容、写总结**不需要 ComfyUI**。
+- 「待筛选」页拉的是 ComfyUI 历史，界面里的「★ 保留这轮」按钮也依赖经验库服务，
+  所以收经验时两个都要开着。
+
+Windows 让它开机自己起：按 `Win + R` 输入 `shell:startup` 回车，把 `start.bat` 的快捷方式放进去。
+想完全无窗口，则新建一个 `.cmd` 放到同一个目录（路径按你自己的安装位置改）：
+
+```bat
+@echo off
+start "" /D "D:\comfy-vault" "C:\Python312\pythonw.exe" "D:\comfy-vault\app.py"
+```
+
+注意：`config.json` 里的 `vault` / `notes` 是相对路径，所以必须用 `/D` 指定工作目录，
+否则数据会跑到别的地方。重复运行是安全的——端口被占用时程序会直接退出。
+
+macOS / Linux 可以用 launchd / systemd 跑 `start.sh`。
+
 ---
 
 ## 装进 ComfyUI 界面（可选）

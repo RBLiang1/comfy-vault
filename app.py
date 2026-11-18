@@ -39,6 +39,16 @@ WEB_DIR = ROOT / "web"
 CFG_PATH = ROOT / "config.json"
 DB_PATH = ROOT / "data" / "vault.sqlite3"
 
+# 用 pythonw.exe 无窗口启动时，sys.stdout / sys.stderr 是 None，
+# 第一句 print() 就会让进程静默退出。改为把日志追加到 server.log，
+# 既不影响正常控制台启动，也方便排查自启失败的原因。
+if sys.stdout is None or sys.stderr is None:
+    _log_file = (ROOT / "server.log").open("a", encoding="utf-8", buffering=1)
+    if sys.stdout is None:
+        sys.stdout = _log_file
+    if sys.stderr is None:
+        sys.stderr = _log_file
+
 DEFAULT_CFG = {
     "comfy_url": "http://127.0.0.1:8188",
     "port": 8791,
